@@ -1,0 +1,38 @@
+{
+  "name": "cashviews",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "rspeedy build",
+    "dev": "rspeedy dev",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "preview": "rspeedy preview"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.121",
+    "@vyui/core": "^0.2.8",
+    "@vyui/kit": "^0.3.8",
+    "pinia": "^4.0.2",
+    "vue": "^3.5.0",
+    "vue-lynx": "^0.4.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@lynx-js/qrcode-rsbuild-plugin": "^0.4.6",
+    "@lynx-js/rspeedy": "^0.13.5",
+    "@lynx-js/tailwind-preset": "^0.5.0",
+    "@rsbuild/plugin-vue": "^1.2.6",
+    "eslint": "^9.39.4",
+    "globals": "^17.5.0",
+    "prettier": "^3.8.2",
+    "rsbuild-plugin-tailwindcss": "^0.2.4",
+    "tailwindcss": "^3.4.19",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.58.1"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "private": true
+}
