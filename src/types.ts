@@ -33,14 +33,26 @@ export interface Transaction {
 
 export type BillingCycle = 'mensile' | 'annuale'
 
-export interface Subscription {
+export type RecurringExpenseType = 'abbonamento' | 'bolletta' | 'mutuo' | 'altro'
+
+export interface RecurringExpense {
   id: string
+  type: RecurringExpenseType
   name: string
+  /** For `mutuo`, this is the computed monthly payment — see lib/mortgage.ts. */
   amount: number
   cycle: BillingCycle
   nextBillingDate: string // ISO date
   icon: string
   color: string
+  /** Only set when `type === 'mutuo'`. */
+  mortgage?: {
+    principal: number
+    /** Annual interest rate, percent (e.g. 3.5 for 3.5%). */
+    interestRate: number
+    termMonths: number
+    startDate: string // ISO date
+  }
 }
 
 export interface SavingsGoal {

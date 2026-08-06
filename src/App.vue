@@ -5,7 +5,7 @@ import { OverlayRoot, ToastProvider } from '@vyui/core'
 import BottomNav, { type TabId } from './components/BottomNav.vue'
 import Dashboard from './screens/Dashboard.vue'
 import Transactions from './screens/Transactions.vue'
-import Subscriptions from './screens/Subscriptions.vue'
+import RecurringExpenses from './screens/RecurringExpenses.vue'
 import Savings from './screens/Savings.vue'
 
 const activeTab = ref<TabId>('home')
@@ -21,7 +21,7 @@ function navigate(tab: TabId) {
       <scroll-view scroll-orientation="vertical" class="flex-1">
         <Dashboard v-if="activeTab === 'home'" @navigate="navigate" />
         <Transactions v-else-if="activeTab === 'transazioni'" />
-        <Subscriptions v-else-if="activeTab === 'abbonamenti'" />
+        <RecurringExpenses v-else-if="activeTab === 'ricorrenti'" />
         <Savings v-else-if="activeTab === 'risparmi'" />
       </scroll-view>
       <BottomNav :active="activeTab" @change="navigate" />

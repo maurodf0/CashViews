@@ -1,26 +1,43 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { VyIcon } from '@vyui/kit/icon'
 
-import AddSubscriptionDrawer from '../components/AddSubscriptionDrawer.vue'
+import AddRecurringExpenseDrawer from '../components/AddRecurringExpenseDrawer.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
+import RecurringExpenseRow from '../components/RecurringExpenseRow.vue'
 import { useFinanceStore } from '../stores/finance'
-import { formatCurrency, formatDateFull, daysUntil } from '../lib/format'
+import { formatCurrency } from '../lib/format'
 import { ACCENT_GRADIENT, ICON_COLOR } from '../lib/colors'
+import { RECURRING_TYPE_META, RECURRING_TYPES } from '../lib/recurring'
+import { useCountUp } from '../composables/useCountUp'
+import type { RecurringExpenseType } from '../types'
 
 const store = useFinanceStore()
 const addOpen = ref(false)
 const confirmDeleteId = ref<string | null>(null)
+const filter = ref<'tutti' | RecurringExpenseType>('tutti')
 
 function confirmDelete() {
-  if (confirmDeleteId.value) store.removeSubscription(confirmDeleteId.value)
+  if (confirmDeleteId.value) store.removeRecurringExpense(confirmDeleteId.value)
 }
+
+const animatedMonthlyTotal = useCountUp(computed(() => store.monthlyRecurringTotal))
+
+const filtered = computed(() => {
+  if (filter.value === 'tutti') return store.sortedRecurringExpenses
+  return store.sortedRecurringExpenses.filter((e) => e.type === filter.value)
+})
+
+const filters: { id: 'tutti' | RecurringExpenseType; label: string }[] = [
+  { id: 'tutti', label: 'Tutti' },
+  ...RECURRING_TYPES.map((t) => ({ id: t, label: RECURRING_TYPE_META[t].label })),
+]
 </script>
 
 <template>
   <view class="flex flex-col gap-4 px-4 pb-8 pt-4">
     <view class="flex flex-row items-center justify-between animate-fade-in-up">
-      <text class="text-xl font-semibold text-white">Abbonamenti</text>
+      <text class="text-xl font-semibold text-white">Spese Ricorrenti</text>
       <view
         class="flex size-9 items-center justify-center rounded-full transition-transform active:scale-90"
         :style="{ background: ACCENT_GRADIENT }"
@@ -35,47 +52,45 @@ function confirmDelete() {
       style="animation-delay: 40ms"
     >
       <text class="text-xs text-zinc-500">Totale mensile</text>
-      <text class="text-2xl font-semibold text-white">{{ formatCurrency(store.monthlySubscriptionsTotal) }}</text>
-      <text class="text-xs text-zinc-500">{{ store.subscriptions.length }} abbonamenti attivi</text>
+      <text class="text-2xl font-semibold text-white">{{ formatCurrency(animatedMonthlyTotal) }}</text>
+      <text class="text-xs text-zinc-500">{{ store.recurringExpenses.length }} spese attive</text>
     </view>
 
-    <view v-if="store.sortedSubscriptions.length === 0" class="items-center py-12 animate-fade-in">
-      <text class="text-center text-sm text-zinc-500">Nessun abbonamento ancora</text>
+    <view class="flex flex-row gap-2 animate-fade-in-up" style="animation-delay: 60ms">
+      <view
+        v-for="f in filters"
+        :key="f.id"
+        class="rounded-full px-3.5 py-1.5 transition-colors active:scale-95"
+        :class="filter === f.id ? 'bg-white/15' : 'bg-white/5'"
+        @tap="filter = f.id"
+      >
+        <text class="text-xs font-medium" :class="filter === f.id ? 'text-white' : 'text-zinc-500'">
+          {{ f.label }}
+        </text>
+      </view>
+    </view>
+
+    <view v-if="filtered.length === 0" class="items-center py-12 animate-fade-in">
+      <text class="text-center text-sm text-zinc-500">Nessuna spesa ricorrente qui</text>
     </view>
 
     <view class="flex flex-col gap-2">
       <view
-        v-for="(s, index) in store.sortedSubscriptions"
-        :key="s.id"
-        class="flex flex-row items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-4 transition-colors active:bg-white/5 animate-fade-in-up"
-        :style="{ animationDelay: `${80 + index * 40}ms` }"
-        @tap="confirmDeleteId = s.id"
+        v-for="(e, index) in filtered"
+        :key="e.id"
+        class="overflow-hidden rounded-2xl border border-zinc-800 animate-fade-in-up"
+        :style="{ animationDelay: `${100 + index * 40}ms` }"
       >
-        <view
-          class="flex size-11 shrink-0 items-center justify-center rounded-full"
-          :style="{ backgroundColor: `${s.color}26` }"
-        >
-          <VyIcon :name="`i-lucide-${s.icon}`" :color="s.color" class="size-5" />
-        </view>
-        <view class="flex min-w-0 flex-1 flex-col">
-          <text class="truncate text-[15px] text-white">{{ s.name }}</text>
-          <text class="truncate text-xs text-zinc-500">
-            Tra {{ daysUntil(s.nextBillingDate) }} giorni · {{ formatDateFull(s.nextBillingDate) }}
-          </text>
-        </view>
-        <view class="flex shrink-0 flex-col items-end">
-          <text class="text-[15px] font-medium text-white">{{ formatCurrency(s.amount) }}</text>
-          <text class="text-xs text-zinc-500">{{ s.cycle }}</text>
-        </view>
+        <RecurringExpenseRow :expense="e" @delete="confirmDeleteId = e.id" />
       </view>
     </view>
 
-    <AddSubscriptionDrawer v-model:open="addOpen" />
+    <AddRecurringExpenseDrawer v-model:open="addOpen" />
 
     <ConfirmModal
       :open="confirmDeleteId !== null"
-      title="Rimuovere l'abbonamento?"
-      description="Puoi aggiungerlo di nuovo in qualsiasi momento."
+      title="Rimuovere questa spesa ricorrente?"
+      description="Puoi aggiungerla di nuovo in qualsiasi momento."
       confirm-label="Rimuovi"
       @update:open="(v) => { if (!v) confirmDeleteId = null }"
       @confirm="confirmDelete"

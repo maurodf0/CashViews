@@ -1,5 +1,6 @@
-import type { SavingsGoal, Subscription, Transaction } from '../types'
+import type { RecurringExpense, SavingsGoal, Transaction } from '../types'
 import { createId } from './id'
+import { monthlyMortgagePayment } from './mortgage'
 
 function daysAgo(n: number): string {
   const d = new Date()
@@ -10,6 +11,12 @@ function daysAgo(n: number): string {
 function daysFromNow(n: number): string {
   const d = new Date()
   d.setDate(d.getDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+function monthsAgo(n: number): string {
+  const d = new Date()
+  d.setMonth(d.getMonth() - n)
   return d.toISOString().slice(0, 10)
 }
 
@@ -26,13 +33,33 @@ export function seedTransactions(): Transaction[] {
   ]
 }
 
-export function seedSubscriptions(): Subscription[] {
+export function seedRecurringExpenses(): RecurringExpense[] {
+  const mortgage = {
+    principal: 180000,
+    interestRate: 3.2,
+    termMonths: 300,
+    startDate: monthsAgo(18),
+  }
+
   return [
-    { id: createId(), name: 'Netflix', amount: 13.99, cycle: 'mensile', nextBillingDate: daysFromNow(9), icon: 'tv', color: '#ef4444' },
-    { id: createId(), name: 'Spotify', amount: 9.99, cycle: 'mensile', nextBillingDate: daysFromNow(20), icon: 'music', color: '#22c55e' },
-    { id: createId(), name: 'iCloud+', amount: 2.99, cycle: 'mensile', nextBillingDate: daysFromNow(14), icon: 'cloud', color: '#60a5fa' },
-    { id: createId(), name: 'Palestra', amount: 29.9, cycle: 'mensile', nextBillingDate: daysFromNow(3), icon: 'dumbbell', color: '#fb923c' },
-    { id: createId(), name: 'Amazon Prime', amount: 49.9, cycle: 'annuale', nextBillingDate: daysFromNow(120), icon: 'package', color: '#38bdf8' },
+    { id: createId(), type: 'abbonamento', name: 'Netflix', amount: 13.99, cycle: 'mensile', nextBillingDate: daysFromNow(9), icon: 'tv', color: '#ef4444' },
+    { id: createId(), type: 'abbonamento', name: 'Spotify', amount: 9.99, cycle: 'mensile', nextBillingDate: daysFromNow(20), icon: 'music', color: '#22c55e' },
+    { id: createId(), type: 'abbonamento', name: 'iCloud+', amount: 2.99, cycle: 'mensile', nextBillingDate: daysFromNow(14), icon: 'cloud', color: '#60a5fa' },
+    { id: createId(), type: 'abbonamento', name: 'Palestra', amount: 29.9, cycle: 'mensile', nextBillingDate: daysFromNow(3), icon: 'dumbbell', color: '#fb923c' },
+    { id: createId(), type: 'abbonamento', name: 'Amazon Prime', amount: 49.9, cycle: 'annuale', nextBillingDate: daysFromNow(120), icon: 'package', color: '#38bdf8' },
+    { id: createId(), type: 'bolletta', name: 'Enel Energia', amount: 84.5, cycle: 'mensile', nextBillingDate: daysFromNow(11), icon: 'zap', color: '#fbbf24' },
+    { id: createId(), type: 'bolletta', name: 'Fibra TIM', amount: 29.9, cycle: 'mensile', nextBillingDate: daysFromNow(6), icon: 'wifi', color: '#fb7185' },
+    {
+      id: createId(),
+      type: 'mutuo',
+      name: 'Mutuo Casa',
+      amount: monthlyMortgagePayment(mortgage.principal, mortgage.interestRate, mortgage.termMonths),
+      cycle: 'mensile',
+      nextBillingDate: daysFromNow(15),
+      icon: 'landmark',
+      color: '#38bdf8',
+      mortgage,
+    },
   ]
 }
 

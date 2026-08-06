@@ -7,6 +7,7 @@ import SavingsActionDrawer from '../components/SavingsActionDrawer.vue'
 import { useFinanceStore } from '../stores/finance'
 import { formatCurrency } from '../lib/format'
 import { ICON_COLOR } from '../lib/colors'
+import { useCountUp } from '../composables/useCountUp'
 import GlowOrb from '../components/GlowOrb.vue'
 
 const store = useFinanceStore()
@@ -20,6 +21,9 @@ function open(mode: 'deposita' | 'preleva') {
 
 const percent = computed(() => Math.round(store.savingsProgress * 100))
 const remaining = computed(() => Math.max(0, store.savingsGoal.target - store.savingsGoal.current))
+
+const animatedCurrent = useCountUp(computed(() => store.savingsGoal.current))
+const animatedPercent = useCountUp(percent)
 </script>
 
 <template>
@@ -36,16 +40,16 @@ const remaining = computed(() => Math.max(0, store.savingsGoal.target - store.sa
         <VyIcon name="i-lucide-piggy-bank" :color="ICON_COLOR.white" class="size-7" />
       </view>
       <text class="truncate text-sm text-zinc-300">{{ store.savingsGoal.name }}</text>
-      <text class="text-[36px] font-semibold text-white">{{ formatCurrency(store.savingsGoal.current) }}</text>
+      <text class="text-[36px] font-semibold text-white">{{ formatCurrency(animatedCurrent) }}</text>
       <view class="flex w-full flex-col gap-2">
         <VyProgress
-          :model-value="percent"
+          :model-value="animatedPercent"
           :max="100"
           size="lg"
           :ui="{ base: 'bg-white/15', indicator: 'bg-[linear-gradient(90deg,#0284c7,#0d9488)]' }"
         />
         <view class="flex flex-row items-center justify-between">
-          <text class="text-xs text-zinc-300">{{ percent }}% dell'obiettivo</text>
+          <text class="text-xs text-zinc-300">{{ Math.round(animatedPercent) }}% dell'obiettivo</text>
           <text class="text-xs text-zinc-300">Obiettivo {{ formatCurrency(store.savingsGoal.target) }}</text>
         </view>
       </view>

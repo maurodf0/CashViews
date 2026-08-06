@@ -1,16 +1,17 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 
-import type { SavingsGoal, Subscription, Transaction } from '../types'
+import type { RecurringExpense, SavingsGoal, Transaction } from '../types'
 import { createId } from '../lib/id'
 import { loadJSON, saveJSON } from '../lib/storage'
-import { seedSavingsGoal, seedSubscriptions, seedTransactions } from '../lib/seed'
+import { seedRecurringExpenses, seedSavingsGoal, seedTransactions } from '../lib/seed'
+import { monthlyMortgagePayment, remainingMortgageBalance } from '../lib/mortgage'
 
-const STORAGE_KEY = 'cashviews:v1'
+const STORAGE_KEY = 'cashviews:v2'
 
 interface PersistedState {
   transactions: Transaction[]
-  subscriptions: Subscription[]
+  recurringExpenses: RecurringExpense[]
   savingsGoal: SavingsGoal
 }
 
@@ -18,15 +19,17 @@ export const useFinanceStore = defineStore('finance', () => {
   const persisted = loadJSON<PersistedState | null>(STORAGE_KEY, null)
 
   const transactions = ref<Transaction[]>(persisted?.transactions ?? seedTransactions())
-  const subscriptions = ref<Subscription[]>(persisted?.subscriptions ?? seedSubscriptions())
+  const recurringExpenses = ref<RecurringExpense[]>(
+    persisted?.recurringExpenses ?? seedRecurringExpenses(),
+  )
   const savingsGoal = ref<SavingsGoal>(persisted?.savingsGoal ?? seedSavingsGoal())
 
   watch(
-    [transactions, subscriptions, savingsGoal],
+    [transactions, recurringExpenses, savingsGoal],
     () => {
       saveJSON<PersistedState>(STORAGE_KEY, {
         transactions: transactions.value,
-        subscriptions: subscriptions.value,
+        recurringExpenses: recurringExpenses.value,
         savingsGoal: savingsGoal.value,
       })
     },
@@ -47,15 +50,24 @@ export const useFinanceStore = defineStore('finance', () => {
 
   const balance = computed(() => totalEntrate.value - totalUscite.value)
 
-  const monthlySubscriptionsTotal = computed(() =>
-    subscriptions.value.reduce(
-      (s, sub) => s + (sub.cycle === 'annuale' ? sub.amount / 12 : sub.amount),
-      0,
-    ),
+  /** For a `mutuo`, the monthly payment is always derived from principal/rate/term. */
+  function monthlyAmountOf(expense: RecurringExpense): number {
+    if (expense.type === 'mutuo' && expense.mortgage) {
+      return monthlyMortgagePayment(
+        expense.mortgage.principal,
+        expense.mortgage.interestRate,
+        expense.mortgage.termMonths,
+      )
+    }
+    return expense.cycle === 'annuale' ? expense.amount / 12 : expense.amount
+  }
+
+  const monthlyRecurringTotal = computed(() =>
+    recurringExpenses.value.reduce((s, e) => s + monthlyAmountOf(e), 0),
   )
 
-  const sortedSubscriptions = computed(() =>
-    [...subscriptions.value].sort((a, b) => (a.nextBillingDate > b.nextBillingDate ? 1 : -1)),
+  const sortedRecurringExpenses = computed(() =>
+    [...recurringExpenses.value].sort((a, b) => (a.nextBillingDate > b.nextBillingDate ? 1 : -1)),
   )
 
   const savingsProgress = computed(() =>
@@ -72,12 +84,30 @@ export const useFinanceStore = defineStore('finance', () => {
     transactions.value = transactions.value.filter((t) => t.id !== id)
   }
 
-  function addSubscription(input: Omit<Subscription, 'id'>) {
-    subscriptions.value.push({ ...input, id: createId() })
+  function addRecurringExpense(input: Omit<RecurringExpense, 'id' | 'amount'> & { amount?: number }) {
+    const amount =
+      input.type === 'mutuo' && input.mortgage
+        ? monthlyMortgagePayment(
+            input.mortgage.principal,
+            input.mortgage.interestRate,
+            input.mortgage.termMonths,
+          )
+        : (input.amount ?? 0)
+    recurringExpenses.value.push({ ...input, amount, id: createId() })
   }
 
-  function removeSubscription(id: string) {
-    subscriptions.value = subscriptions.value.filter((s) => s.id !== id)
+  function removeRecurringExpense(id: string) {
+    recurringExpenses.value = recurringExpenses.value.filter((e) => e.id !== id)
+  }
+
+  function mortgageRemainingBalance(expense: RecurringExpense): number {
+    if (expense.type !== 'mutuo' || !expense.mortgage) return 0
+    return remainingMortgageBalance(
+      expense.mortgage.principal,
+      expense.mortgage.interestRate,
+      expense.mortgage.termMonths,
+      expense.mortgage.startDate,
+    )
   }
 
   function depositToSavings(amount: number) {
@@ -95,18 +125,20 @@ export const useFinanceStore = defineStore('finance', () => {
   return {
     transactions,
     sortedTransactions,
-    subscriptions,
-    sortedSubscriptions,
+    recurringExpenses,
+    sortedRecurringExpenses,
     savingsGoal,
     totalEntrate,
     totalUscite,
     balance,
-    monthlySubscriptionsTotal,
+    monthlyRecurringTotal,
+    monthlyAmountOf,
     savingsProgress,
     addTransaction,
     removeTransaction,
-    addSubscription,
-    removeSubscription,
+    addRecurringExpense,
+    removeRecurringExpense,
+    mortgageRemainingBalance,
     depositToSavings,
     withdrawFromSavings,
     setSavingsTarget,

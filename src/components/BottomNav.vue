@@ -2,7 +2,7 @@
 import { VyIcon } from '@vyui/kit/icon'
 import { ICON_COLOR } from '../lib/colors'
 
-export type TabId = 'home' | 'transazioni' | 'abbonamenti' | 'risparmi'
+export type TabId = 'home' | 'transazioni' | 'ricorrenti' | 'risparmi'
 
 const props = defineProps<{ active: TabId }>()
 const emit = defineEmits<{ change: [TabId] }>()
@@ -10,7 +10,7 @@ const emit = defineEmits<{ change: [TabId] }>()
 const tabs: { id: TabId; label: string; icon: string }[] = [
   { id: 'home', label: 'Home', icon: 'i-lucide-house' },
   { id: 'transazioni', label: 'Movimenti', icon: 'i-lucide-arrow-left-right' },
-  { id: 'abbonamenti', label: 'Abbonamenti', icon: 'i-lucide-repeat' },
+  { id: 'ricorrenti', label: 'Ricorrenti', icon: 'i-lucide-repeat' },
   { id: 'risparmi', label: 'Risparmi', icon: 'i-lucide-piggy-bank' },
 ]
 </script>

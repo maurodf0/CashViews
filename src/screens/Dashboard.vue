@@ -12,7 +12,7 @@ import { useCountUp } from '../composables/useCountUp'
 import GlowOrb from '../components/GlowOrb.vue'
 import type { TransactionKind } from '../types'
 
-const emit = defineEmits<{ navigate: ['transazioni' | 'abbonamenti' | 'risparmi'] }>()
+const emit = defineEmits<{ navigate: ['transazioni' | 'ricorrenti' | 'risparmi'] }>()
 
 const store = useFinanceStore()
 
@@ -31,7 +31,7 @@ const animatedBalance = useCountUp(computed(() => store.balance))
 const animatedEntrate = useCountUp(computed(() => store.totalEntrate))
 const animatedUscite = useCountUp(computed(() => store.totalUscite))
 const animatedSavingsPercent = useCountUp(savingsPercent)
-const animatedSubscriptionsTotal = useCountUp(computed(() => store.monthlySubscriptionsTotal))
+const animatedRecurringTotal = useCountUp(computed(() => store.monthlyRecurringTotal))
 </script>
 
 <template>
@@ -112,17 +112,17 @@ const animatedSubscriptionsTotal = useCountUp(computed(() => store.monthlySubscr
     <view
       class="flex flex-row items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-900 p-4 transition-transform active:scale-[0.98] active:bg-white/5 animate-fade-in-up"
       style="animation-delay: 160ms"
-      @tap="emit('navigate', 'abbonamenti')"
+      @tap="emit('navigate', 'ricorrenti')"
     >
       <view class="flex min-w-0 flex-row items-center gap-2">
         <VyIcon name="i-lucide-repeat" :color="ICON_COLOR.zinc300" class="size-5 shrink-0" />
         <view class="flex min-w-0 flex-col">
-          <text class="truncate text-sm font-medium text-white">Abbonamenti</text>
-          <text class="truncate text-xs text-zinc-500">{{ store.subscriptions.length }} attivi</text>
+          <text class="truncate text-sm font-medium text-white">Spese Ricorrenti</text>
+          <text class="truncate text-xs text-zinc-500">{{ store.recurringExpenses.length }} attive</text>
         </view>
       </view>
       <view class="flex shrink-0 flex-row items-center gap-2">
-        <text class="text-sm font-medium text-white">{{ formatCurrency(store.monthlySubscriptionsTotal) }}/mese</text>
+        <text class="text-sm font-medium text-white">{{ formatCurrency(animatedRecurringTotal) }}/mese</text>
         <VyIcon name="i-lucide-chevron-right" :color="ICON_COLOR.zinc500" class="size-4" />
       </view>
     </view>
