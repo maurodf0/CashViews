@@ -78,10 +78,10 @@ const filters: { id: 'tutti' | RecurringExpenseType; label: string }[] = [
       <view
         v-for="(e, index) in filtered"
         :key="e.id"
-        class="overflow-hidden rounded-2xl border border-zinc-800 animate-fade-in-up"
+        class="rounded-2xl border border-zinc-800 bg-zinc-900 animate-fade-in-up"
         :style="{ animationDelay: `${100 + index * 40}ms` }"
       >
-        <RecurringExpenseRow :expense="e" @delete="confirmDeleteId = e.id" />
+        <RecurringExpenseRow :expense="e" @press="confirmDeleteId = e.id" />
       </view>
     </view>
 

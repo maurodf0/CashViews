@@ -85,8 +85,7 @@ const filters: { id: 'tutti' | TransactionKind; label: string }[] = [
           v-for="t in group.items"
           :key="t.id"
           :transaction="t"
-          swipeable
-          @delete="confirmDeleteId = t.id"
+          @press="confirmDeleteId = t.id"
         />
       </view>
     </view>
