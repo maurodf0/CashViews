@@ -33,7 +33,7 @@ function userFromResponse(u: {
 }
 
 async function authRequest<T>(path: string, body?: unknown, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+  const res = await globalThis.fetch(`${API_BASE_URL}${path}`, {
     method: body === undefined ? 'GET' : 'POST',
     headers: { 'Content-Type': 'application/json', ...init.headers },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -107,7 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
     loading.value = true
     try {
-      const res = await fetch(`${API_BASE_URL}/api/auth/get-session`, {
+      const res = await globalThis.fetch(`${API_BASE_URL}/api/auth/get-session`, {
         headers: { Authorization: `Bearer ${token.value}` },
       })
       const body = res.ok ? await res.json().catch(() => null) : null

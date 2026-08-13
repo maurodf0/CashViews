@@ -61,6 +61,16 @@ text {
   --ui-border-inverted: theme('colors.white');
 }
 
+/*
+ * Auth screens (login/signup/verify): VyInput's focus ring reads
+ * `--ui-color-primary-200`, which above is zinc.200 — nearly white, quite
+ * harsh against the glass panels here. Scope a softer, translucent ring to
+ * just this subtree instead of changing the value app-wide.
+ */
+.auth-scope {
+  --ui-color-primary-200: rgba(255, 255, 255, 0.16);
+}
+
 /* ── Entrance / reveal animations ─────────────────────────────────────── */
 
 @keyframes fade-in {

@@ -6,6 +6,9 @@ import { VyInput } from '@vyui/kit/input'
 import { useAuthStore } from '../../stores/auth'
 import { useThemeStore } from '../../stores/theme'
 import GlowOrb from '../../components/GlowOrb.vue'
+import GlassCard from '../../components/GlassCard.vue'
+import AuthHeader from './AuthHeader.vue'
+import SocialLoginButtons from './SocialLoginButtons.vue'
 
 const props = defineProps<{ prefillEmail?: string }>()
 const emit = defineEmits<{ switchToSignUp: [] }>()
@@ -42,34 +45,44 @@ async function submit() {
 </script>
 
 <template>
-  <view class="relative flex h-full flex-col justify-center gap-6 overflow-hidden px-6 py-10">
-    <GlowOrb class="-right-16 -top-24 size-64 opacity-40" />
-    <GlowOrb class="-bottom-24 -left-16 size-56 opacity-25" />
+  <view class="auth-scope relative flex h-full flex-col overflow-hidden">
+    <GlowOrb class="-right-20 -top-24 size-72 opacity-40" />
+    <GlowOrb class="-bottom-24 -left-20 size-64 opacity-25" />
 
-    <view class="flex flex-col gap-1">
-      <text class="text-2xl font-semibold text-white">Bentornato</text>
-      <text class="text-sm text-zinc-400">Accedi al tuo account</text>
-    </view>
+    <scroll-view scroll-orientation="vertical" class="h-full">
+      <view class="flex min-h-full flex-col justify-center gap-6 px-6 py-10">
+        <AuthHeader />
 
-    <view class="flex flex-col gap-3">
-      <VyInput v-model="email" type="email" placeholder="Email" />
-      <VyInput v-model="password" type="password" placeholder="Password" />
-    </view>
+        <GlassCard class="flex flex-col gap-5 p-5" :glow="false">
+          <view class="flex flex-col gap-1">
+            <text class="text-lg font-semibold text-white">Bentornato</text>
+            <text class="text-sm text-zinc-400">Accedi al tuo account per continuare</text>
+          </view>
 
-    <text v-if="error" class="text-sm text-rose-400">{{ error }}</text>
+          <SocialLoginButtons />
 
-    <VyButton
-      block
-      size="lg"
-      label="Accedi"
-      :disabled="!canSubmit || submitting"
-      class="transition-transform active:scale-[0.98]"
-      @tap="submit"
-    />
+          <view class="flex flex-col gap-3">
+            <VyInput v-model="email" type="email" placeholder="Email" size="lg" />
+            <VyInput v-model="password" type="password" placeholder="Password" size="lg" />
+          </view>
 
-    <view class="flex flex-row items-center justify-center gap-1" @tap="emit('switchToSignUp')">
-      <text class="text-sm text-zinc-400">Non hai un account?</text>
-      <text class="text-sm font-medium" :style="{ color: theme.accentColor }">Registrati</text>
-    </view>
+          <text v-if="error" class="text-sm text-rose-400">{{ error }}</text>
+
+          <VyButton
+            block
+            size="lg"
+            label="Accedi"
+            :disabled="!canSubmit || submitting"
+            class="transition-transform active:scale-[0.98]"
+            @tap="submit"
+          />
+        </GlassCard>
+
+        <view class="flex flex-row items-center justify-center gap-1" @tap="emit('switchToSignUp')">
+          <text class="text-sm text-zinc-400">Non hai un account?</text>
+          <text class="text-sm font-medium" :style="{ color: theme.accentColor }">Registrati</text>
+        </view>
+      </view>
+    </scroll-view>
   </view>
 </template>

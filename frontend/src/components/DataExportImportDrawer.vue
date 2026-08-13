@@ -18,8 +18,10 @@ const info = ref('')
 const busy = ref(false)
 
 /** Clipboard access is unconfirmed on Lynx native — feature-detected, with the
- * textarea itself as the fallback (select-and-copy manually). */
-const clipboardAvailable = typeof navigator !== 'undefined' && !!navigator.clipboard
+ * textarea itself as the fallback (select-and-copy manually). Reads via
+ * `globalThis` because Lynx's background-thread realm doesn't resolve bare
+ * global identifiers (see lib/api.ts's `globalThis.fetch` note). */
+const clipboardAvailable = !!globalThis.navigator?.clipboard
 
 function openMenu() {
   mode.value = 'menu'
@@ -44,7 +46,7 @@ async function startExport() {
 async function copyExport() {
   if (!clipboardAvailable) return
   try {
-    await navigator.clipboard.writeText(exportText.value)
+    await globalThis.navigator.clipboard.writeText(exportText.value)
     info.value = 'Copiato negli appunti'
   } catch {
     error.value = 'Copia non riuscita — seleziona e copia manualmente il testo'

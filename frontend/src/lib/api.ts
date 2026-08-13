@@ -27,13 +27,25 @@ export class ApiError extends Error {
   }
 }
 
-/** Thin fetch wrapper for the app's own `/api/*` REST endpoints (not better-auth's `/api/auth/*`, which has its own response shape — see stores/auth.ts). */
+/**
+ * Thin fetch wrapper for the app's own `/api/*` REST endpoints (not
+ * better-auth's `/api/auth/*`, which has its own response shape — see
+ * stores/auth.ts).
+ *
+ * Always call Web APIs via `globalThis.*` (`globalThis.fetch`,
+ * `globalThis.Headers`, `globalThis.navigator`, …) in this codebase, never
+ * as bare identifiers: Lynx's background-thread JS realm (where component/
+ * store code runs) has no `window`, and — confirmed by testing — bare
+ * `fetch` resolves to `undefined` there even though `globalThis.fetch` is a
+ * real function. The realm's global object isn't wired into the identifier
+ * scope chain the way a normal browser `window`/`globalThis` is.
+ */
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const headers = new Headers(options.headers)
+  const headers = new globalThis.Headers(options.headers)
   headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
 
-  const res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers })
+  const res = await globalThis.fetch(`${API_BASE_URL}${path}`, { ...options, headers })
 
   if (res.status === 401) {
     setAuthToken(null)
