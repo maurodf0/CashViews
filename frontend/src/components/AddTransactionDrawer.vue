@@ -41,17 +41,28 @@ const canSave = computed(() => {
   return Number.isFinite(value) && value > 0
 })
 
-function save() {
-  if (!canSave.value) return
+const saving = ref(false)
+const error = ref('')
+
+async function save() {
+  if (!canSave.value || saving.value) return
+  saving.value = true
+  error.value = ''
   const value = Number.parseFloat(amount.value.replace(',', '.'))
-  store.addTransaction({
-    kind: kind.value,
-    amount: value,
-    categoryId: categoryId.value,
-    note: note.value.trim(),
-    date: new Date().toISOString().slice(0, 10),
-  })
-  open.value = false
+  try {
+    await store.addTransaction({
+      kind: kind.value,
+      amount: value,
+      categoryId: categoryId.value,
+      note: note.value.trim(),
+      date: new Date().toISOString().slice(0, 10),
+    })
+    open.value = false
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Salvataggio fallito'
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -115,6 +126,8 @@ function save() {
           <text class="text-xs text-zinc-500">Nota (opzionale)</text>
           <VyInput v-model="note" placeholder="Es. Cena con amici" />
         </view>
+
+        <text v-if="error" class="text-sm text-rose-400">{{ error }}</text>
       </view>
     </template>
     <template #footer>
@@ -122,7 +135,7 @@ function save() {
         block
         size="lg"
         label="Salva"
-        :disabled="!canSave"
+        :disabled="!canSave || saving"
         class="transition-transform active:scale-[0.98]"
         @tap="save"
       />

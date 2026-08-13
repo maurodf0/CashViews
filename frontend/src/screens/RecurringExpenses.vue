@@ -20,8 +20,8 @@ const addOpen = ref(false)
 const confirmDeleteId = ref<string | null>(null)
 const filter = ref<'tutti' | RecurringExpenseType>('tutti')
 
-function confirmDelete() {
-  if (confirmDeleteId.value) store.removeRecurringExpense(confirmDeleteId.value)
+async function confirmDelete() {
+  if (confirmDeleteId.value) await store.removeRecurringExpense(confirmDeleteId.value)
 }
 
 const animatedMonthlyTotal = useCountUp(computed(() => store.monthlyRecurringTotal))

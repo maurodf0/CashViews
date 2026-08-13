@@ -70,42 +70,53 @@ const canSave = computed(() => {
   return Number.isFinite(value) && value > 0
 })
 
-function save() {
-  if (!canSave.value) return
+const saving = ref(false)
+const error = ref('')
+
+async function save() {
+  if (!canSave.value || saving.value) return
+  saving.value = true
+  error.value = ''
   const days = Number.parseInt(daysUntilBilling.value, 10) || 0
   const next = new Date()
   next.setDate(next.getDate() + days)
   const nextBillingDate = next.toISOString().slice(0, 10)
 
-  if (type.value === 'mutuo') {
-    const p = Number.parseFloat(principal.value.replace(',', '.'))
-    const r = Number.parseFloat(interestRate.value.replace(',', '.'))
-    const n = Number.parseInt(termMonths.value, 10)
-    const paidMonths = Number.parseInt(monthsAlreadyPaid.value, 10) || 0
-    const start = new Date()
-    start.setMonth(start.getMonth() - paidMonths)
-    store.addRecurringExpense({
-      type: 'mutuo',
-      name: name.value.trim(),
-      cycle: 'mensile',
-      nextBillingDate,
-      icon: icon.value,
-      color: color.value,
-      mortgage: { principal: p, interestRate: r, termMonths: n, startDate: start.toISOString().slice(0, 10) },
-    })
-  } else {
-    const value = Number.parseFloat(amount.value.replace(',', '.'))
-    store.addRecurringExpense({
-      type: type.value,
-      name: name.value.trim(),
-      amount: value,
-      cycle: cycle.value,
-      nextBillingDate,
-      icon: icon.value,
-      color: color.value,
-    })
+  try {
+    if (type.value === 'mutuo') {
+      const p = Number.parseFloat(principal.value.replace(',', '.'))
+      const r = Number.parseFloat(interestRate.value.replace(',', '.'))
+      const n = Number.parseInt(termMonths.value, 10)
+      const paidMonths = Number.parseInt(monthsAlreadyPaid.value, 10) || 0
+      const start = new Date()
+      start.setMonth(start.getMonth() - paidMonths)
+      await store.addRecurringExpense({
+        type: 'mutuo',
+        name: name.value.trim(),
+        cycle: 'mensile',
+        nextBillingDate,
+        icon: icon.value,
+        color: color.value,
+        mortgage: { principal: p, interestRate: r, termMonths: n, startDate: start.toISOString().slice(0, 10) },
+      })
+    } else {
+      const value = Number.parseFloat(amount.value.replace(',', '.'))
+      await store.addRecurringExpense({
+        type: type.value,
+        name: name.value.trim(),
+        amount: value,
+        cycle: cycle.value,
+        nextBillingDate,
+        icon: icon.value,
+        color: color.value,
+      })
+    }
+    open.value = false
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Salvataggio fallito'
+  } finally {
+    saving.value = false
   }
-  open.value = false
 }
 </script>
 
@@ -212,6 +223,8 @@ function save() {
             />
           </view>
         </view>
+
+        <text v-if="error" class="text-sm text-rose-400">{{ error }}</text>
       </view>
     </template>
     <template #footer>
@@ -219,7 +232,7 @@ function save() {
         block
         size="lg"
         label="Salva"
-        :disabled="!canSave"
+        :disabled="!canSave || saving"
         class="transition-transform active:scale-[0.98]"
         @tap="save"
       />

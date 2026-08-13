@@ -7,7 +7,6 @@ import { VyIcon } from '@vyui/kit/icon'
 
 import ConfirmModal from './ConfirmModal.vue'
 import { useFinanceStore } from '../stores/finance'
-import { CATEGORIES } from '../lib/categories'
 import type { TransactionKind } from '../types'
 
 const ICONS = [
@@ -61,15 +60,21 @@ function openForm() {
 }
 
 const canSave = computed(() => label.value.trim().length > 0)
+const saving = ref(false)
 
-function save() {
-  if (!canSave.value) return
-  store.addCustomCategory({ label: label.value.trim(), kind: kind.value, icon: icon.value, color: color.value })
-  formOpen.value = false
+async function save() {
+  if (!canSave.value || saving.value) return
+  saving.value = true
+  try {
+    await store.addCustomCategory({ label: label.value.trim(), kind: kind.value, icon: icon.value, color: color.value })
+    formOpen.value = false
+  } finally {
+    saving.value = false
+  }
 }
 
-function confirmDelete() {
-  if (confirmDeleteId.value) store.removeCustomCategory(confirmDeleteId.value)
+async function confirmDelete() {
+  if (confirmDeleteId.value) await store.removeCustomCategory(confirmDeleteId.value)
   confirmDeleteId.value = null
 }
 </script>
@@ -91,7 +96,7 @@ function confirmDelete() {
             <text class="text-xs uppercase text-zinc-500">Predefinite</text>
             <view class="flex flex-row flex-wrap gap-2">
               <view
-                v-for="c in CATEGORIES"
+                v-for="c in store.builtInCategories"
                 :key="c.id"
                 class="flex flex-row items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5"
               >
@@ -187,7 +192,7 @@ function confirmDelete() {
         block
         size="lg"
         label="Salva categoria"
-        :disabled="!canSave"
+        :disabled="!canSave || saving"
         class="transition-transform active:scale-[0.98]"
         @tap="save"
       />

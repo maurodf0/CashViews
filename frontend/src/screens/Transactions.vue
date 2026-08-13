@@ -18,8 +18,8 @@ const addOpen = ref(false)
 const filter = ref<'tutti' | TransactionKind>('tutti')
 const confirmDeleteId = ref<string | null>(null)
 
-function confirmDelete() {
-  if (confirmDeleteId.value) store.removeTransaction(confirmDeleteId.value)
+async function confirmDelete() {
+  if (confirmDeleteId.value) await store.removeTransaction(confirmDeleteId.value)
 }
 
 const filtered = computed(() => {

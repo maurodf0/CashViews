@@ -30,9 +30,9 @@ function openAction(mode: 'deposita' | 'preleva') {
   actionOpen.value = true
 }
 
-function confirmDelete() {
+async function confirmDelete() {
   if (!goal.value) return
-  store.removeSavingsGoal(goal.value.id)
+  await store.removeSavingsGoal(goal.value.id)
   open.value = false
   emit('deleted')
 }

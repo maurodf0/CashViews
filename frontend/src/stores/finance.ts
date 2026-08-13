@@ -1,44 +1,43 @@
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
 import type { Category, RecurringExpense, SavingsGoal, Transaction } from '../types'
-import { createId } from '../lib/id'
-import { loadJSON, saveJSON } from '../lib/storage'
-import { CATEGORIES, getCategory } from '../lib/categories'
-import { seedRecurringExpenses, seedSavingsGoals, seedTransactions } from '../lib/seed'
+import { apiFetch } from '../lib/api'
+import { getCategory } from '../lib/categories'
 import { monthlyMortgagePayment, remainingMortgageBalance } from '../lib/mortgage'
 
-const STORAGE_KEY = 'cashviews:v3'
-
-interface PersistedState {
-  transactions: Transaction[]
-  recurringExpenses: RecurringExpense[]
-  savingsGoals: SavingsGoal[]
-  customCategories: Category[]
+interface CategoryRow extends Category {
+  userId: string | null
 }
 
 export const useFinanceStore = defineStore('finance', () => {
-  const persisted = loadJSON<PersistedState | null>(STORAGE_KEY, null)
+  const transactions = ref<Transaction[]>([])
+  const recurringExpenses = ref<RecurringExpense[]>([])
+  const savingsGoals = ref<SavingsGoal[]>([])
+  const categoryRows = ref<CategoryRow[]>([])
+  const loaded = ref(false)
 
-  const transactions = ref<Transaction[]>(persisted?.transactions ?? seedTransactions())
-  const recurringExpenses = ref<RecurringExpense[]>(
-    persisted?.recurringExpenses ?? seedRecurringExpenses(),
-  )
-  const savingsGoals = ref<SavingsGoal[]>(persisted?.savingsGoals ?? seedSavingsGoals())
-  const customCategories = ref<Category[]>(persisted?.customCategories ?? [])
+  async function fetchAll() {
+    const [t, r, g, c] = await Promise.all([
+      apiFetch<Transaction[]>('/api/transactions'),
+      apiFetch<RecurringExpense[]>('/api/recurring-expenses'),
+      apiFetch<SavingsGoal[]>('/api/savings-goals'),
+      apiFetch<CategoryRow[]>('/api/categories'),
+    ])
+    transactions.value = t
+    recurringExpenses.value = r
+    savingsGoals.value = g
+    categoryRows.value = c
+    loaded.value = true
+  }
 
-  watch(
-    [transactions, recurringExpenses, savingsGoals, customCategories],
-    () => {
-      saveJSON<PersistedState>(STORAGE_KEY, {
-        transactions: transactions.value,
-        recurringExpenses: recurringExpenses.value,
-        savingsGoals: savingsGoals.value,
-        customCategories: customCategories.value,
-      })
-    },
-    { deep: true },
-  )
+  function reset() {
+    transactions.value = []
+    recurringExpenses.value = []
+    savingsGoals.value = []
+    categoryRows.value = []
+    loaded.value = false
+  }
 
   const sortedTransactions = computed(() =>
     [...transactions.value].sort((a, b) => (a.date < b.date ? 1 : -1)),
@@ -80,15 +79,20 @@ export const useFinanceStore = defineStore('finance', () => {
     return goal.target > 0 ? Math.min(1, goal.current / goal.target) : 0
   }
 
-  function addTransaction(input: Omit<Transaction, 'id'>) {
-    transactions.value.push({ ...input, id: createId() })
+  async function addTransaction(input: Omit<Transaction, 'id'>) {
+    const created = await apiFetch<Transaction>('/api/transactions', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+    transactions.value.push(created)
   }
 
-  function removeTransaction(id: string) {
+  async function removeTransaction(id: string) {
+    await apiFetch(`/api/transactions/${id}`, { method: 'DELETE' })
     transactions.value = transactions.value.filter((t) => t.id !== id)
   }
 
-  function addRecurringExpense(input: Omit<RecurringExpense, 'id' | 'amount'> & { amount?: number }) {
+  async function addRecurringExpense(input: Omit<RecurringExpense, 'id' | 'amount'> & { amount?: number }) {
     const amount =
       input.type === 'mutuo' && input.mortgage
         ? monthlyMortgagePayment(
@@ -97,10 +101,15 @@ export const useFinanceStore = defineStore('finance', () => {
             input.mortgage.termMonths,
           )
         : (input.amount ?? 0)
-    recurringExpenses.value.push({ ...input, amount, id: createId() })
+    const created = await apiFetch<RecurringExpense>('/api/recurring-expenses', {
+      method: 'POST',
+      body: JSON.stringify({ ...input, amount }),
+    })
+    recurringExpenses.value.push(created)
   }
 
-  function removeRecurringExpense(id: string) {
+  async function removeRecurringExpense(id: string) {
+    await apiFetch(`/api/recurring-expenses/${id}`, { method: 'DELETE' })
     recurringExpenses.value = recurringExpenses.value.filter((e) => e.id !== id)
   }
 
@@ -114,45 +123,74 @@ export const useFinanceStore = defineStore('finance', () => {
     )
   }
 
-  function addSavingsGoal(input: Omit<SavingsGoal, 'id' | 'current'> & { current?: number }) {
-    savingsGoals.value.push({ ...input, current: input.current ?? 0, id: createId() })
+  async function addSavingsGoal(input: Omit<SavingsGoal, 'id' | 'current'> & { current?: number }) {
+    const created = await apiFetch<SavingsGoal>('/api/savings-goals', {
+      method: 'POST',
+      body: JSON.stringify({ ...input, current: input.current ?? 0 }),
+    })
+    savingsGoals.value.push(created)
   }
 
-  function removeSavingsGoal(id: string) {
+  async function removeSavingsGoal(id: string) {
+    await apiFetch(`/api/savings-goals/${id}`, { method: 'DELETE' })
     savingsGoals.value = savingsGoals.value.filter((g) => g.id !== id)
   }
 
-  function depositToSavings(goalId: string, amount: number) {
-    const goal = savingsGoals.value.find((g) => g.id === goalId)
-    if (goal) goal.current += amount
+  function replaceGoal(updated: SavingsGoal) {
+    const index = savingsGoals.value.findIndex((g) => g.id === updated.id)
+    if (index !== -1) savingsGoals.value[index] = updated
   }
 
-  function withdrawFromSavings(goalId: string, amount: number) {
-    const goal = savingsGoals.value.find((g) => g.id === goalId)
-    if (goal) goal.current = Math.max(0, goal.current - amount)
+  async function depositToSavings(goalId: string, amount: number) {
+    const updated = await apiFetch<SavingsGoal>(`/api/savings-goals/${goalId}/deposit`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    })
+    replaceGoal(updated)
   }
 
-  function setSavingsTarget(goalId: string, target: number) {
-    const goal = savingsGoals.value.find((g) => g.id === goalId)
-    if (goal) goal.target = target
+  async function withdrawFromSavings(goalId: string, amount: number) {
+    const updated = await apiFetch<SavingsGoal>(`/api/savings-goals/${goalId}/withdraw`, {
+      method: 'POST',
+      body: JSON.stringify({ amount }),
+    })
+    replaceGoal(updated)
   }
 
-  const categories = computed<Category[]>(() => [...CATEGORIES, ...customCategories.value])
+  async function setSavingsTarget(goalId: string, target: number) {
+    const updated = await apiFetch<SavingsGoal>(`/api/savings-goals/${goalId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ target }),
+    })
+    replaceGoal(updated)
+  }
+
+  const categories = computed<Category[]>(() => categoryRows.value)
+  const builtInCategories = computed(() => categoryRows.value.filter((c) => c.userId === null))
+  const customCategories = computed(() => categoryRows.value.filter((c) => c.userId !== null))
 
   function categoryOf(categoryId: string): Category {
-    return categories.value.find((c) => c.id === categoryId) ?? getCategory(categoryId)
+    return categoryRows.value.find((c) => c.id === categoryId) ?? getCategory(categoryId)
   }
 
-  function addCustomCategory(input: Omit<Category, 'id'>) {
-    customCategories.value.push({ ...input, id: createId() })
+  async function addCustomCategory(input: Omit<Category, 'id'>) {
+    const created = await apiFetch<CategoryRow>('/api/categories', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    })
+    categoryRows.value.push(created)
   }
 
-  /** No-op if `id` belongs to a built-in category — those aren't in `customCategories`. */
-  function removeCustomCategory(id: string) {
-    customCategories.value = customCategories.value.filter((c) => c.id !== id)
+  /** No-op if `id` belongs to a built-in category — the API rejects that with a 404. */
+  async function removeCustomCategory(id: string) {
+    await apiFetch(`/api/categories/${id}`, { method: 'DELETE' })
+    categoryRows.value = categoryRows.value.filter((c) => c.id !== id)
   }
 
   return {
+    loaded,
+    fetchAll,
+    reset,
     transactions,
     sortedTransactions,
     recurringExpenses,
@@ -176,6 +214,7 @@ export const useFinanceStore = defineStore('finance', () => {
     withdrawFromSavings,
     setSavingsTarget,
     categories,
+    builtInCategories,
     customCategories,
     categoryOf,
     addCustomCategory,

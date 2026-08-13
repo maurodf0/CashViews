@@ -24,13 +24,24 @@ const canSave = computed(() => {
   return name.value.trim().length > 0 && Number.isFinite(value) && value > 0
 })
 
-function save() {
-  if (!canSave.value) return
-  store.addSavingsGoal({
-    name: name.value.trim(),
-    target: Number.parseFloat(target.value.replace(',', '.')),
-  })
-  open.value = false
+const saving = ref(false)
+const error = ref('')
+
+async function save() {
+  if (!canSave.value || saving.value) return
+  saving.value = true
+  error.value = ''
+  try {
+    await store.addSavingsGoal({
+      name: name.value.trim(),
+      target: Number.parseFloat(target.value.replace(',', '.')),
+    })
+    open.value = false
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Creazione fallita'
+  } finally {
+    saving.value = false
+  }
 }
 </script>
 
@@ -46,6 +57,8 @@ function save() {
           <text class="text-xs text-zinc-500">Obiettivo</text>
           <VyInput v-model="target" type="number" placeholder="0,00" />
         </view>
+
+        <text v-if="error" class="text-sm text-rose-400">{{ error }}</text>
       </view>
     </template>
     <template #footer>
@@ -53,7 +66,7 @@ function save() {
         block
         size="lg"
         label="Crea fondo"
-        :disabled="!canSave"
+        :disabled="!canSave || saving"
         class="transition-transform active:scale-[0.98]"
         @tap="save"
       />
