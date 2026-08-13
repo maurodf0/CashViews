@@ -1,18 +1,20 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 
-import type { RecurringExpense, SavingsGoal, Transaction } from '../types'
+import type { Category, RecurringExpense, SavingsGoal, Transaction } from '../types'
 import { createId } from '../lib/id'
 import { loadJSON, saveJSON } from '../lib/storage'
-import { seedRecurringExpenses, seedSavingsGoal, seedTransactions } from '../lib/seed'
+import { CATEGORIES, getCategory } from '../lib/categories'
+import { seedRecurringExpenses, seedSavingsGoals, seedTransactions } from '../lib/seed'
 import { monthlyMortgagePayment, remainingMortgageBalance } from '../lib/mortgage'
 
-const STORAGE_KEY = 'cashviews:v2'
+const STORAGE_KEY = 'cashviews:v3'
 
 interface PersistedState {
   transactions: Transaction[]
   recurringExpenses: RecurringExpense[]
-  savingsGoal: SavingsGoal
+  savingsGoals: SavingsGoal[]
+  customCategories: Category[]
 }
 
 export const useFinanceStore = defineStore('finance', () => {
@@ -22,15 +24,17 @@ export const useFinanceStore = defineStore('finance', () => {
   const recurringExpenses = ref<RecurringExpense[]>(
     persisted?.recurringExpenses ?? seedRecurringExpenses(),
   )
-  const savingsGoal = ref<SavingsGoal>(persisted?.savingsGoal ?? seedSavingsGoal())
+  const savingsGoals = ref<SavingsGoal[]>(persisted?.savingsGoals ?? seedSavingsGoals())
+  const customCategories = ref<Category[]>(persisted?.customCategories ?? [])
 
   watch(
-    [transactions, recurringExpenses, savingsGoal],
+    [transactions, recurringExpenses, savingsGoals, customCategories],
     () => {
       saveJSON<PersistedState>(STORAGE_KEY, {
         transactions: transactions.value,
         recurringExpenses: recurringExpenses.value,
-        savingsGoal: savingsGoal.value,
+        savingsGoals: savingsGoals.value,
+        customCategories: customCategories.value,
       })
     },
     { deep: true },
@@ -70,11 +74,11 @@ export const useFinanceStore = defineStore('finance', () => {
     [...recurringExpenses.value].sort((a, b) => (a.nextBillingDate > b.nextBillingDate ? 1 : -1)),
   )
 
-  const savingsProgress = computed(() =>
-    savingsGoal.value.target > 0
-      ? Math.min(1, savingsGoal.value.current / savingsGoal.value.target)
-      : 0,
-  )
+  const totalSavings = computed(() => savingsGoals.value.reduce((s, g) => s + g.current, 0))
+
+  function savingsProgressOf(goal: SavingsGoal): number {
+    return goal.target > 0 ? Math.min(1, goal.current / goal.target) : 0
+  }
 
   function addTransaction(input: Omit<Transaction, 'id'>) {
     transactions.value.push({ ...input, id: createId() })
@@ -110,16 +114,42 @@ export const useFinanceStore = defineStore('finance', () => {
     )
   }
 
-  function depositToSavings(amount: number) {
-    savingsGoal.value.current += amount
+  function addSavingsGoal(input: Omit<SavingsGoal, 'id' | 'current'> & { current?: number }) {
+    savingsGoals.value.push({ ...input, current: input.current ?? 0, id: createId() })
   }
 
-  function withdrawFromSavings(amount: number) {
-    savingsGoal.value.current = Math.max(0, savingsGoal.value.current - amount)
+  function removeSavingsGoal(id: string) {
+    savingsGoals.value = savingsGoals.value.filter((g) => g.id !== id)
   }
 
-  function setSavingsTarget(target: number) {
-    savingsGoal.value.target = target
+  function depositToSavings(goalId: string, amount: number) {
+    const goal = savingsGoals.value.find((g) => g.id === goalId)
+    if (goal) goal.current += amount
+  }
+
+  function withdrawFromSavings(goalId: string, amount: number) {
+    const goal = savingsGoals.value.find((g) => g.id === goalId)
+    if (goal) goal.current = Math.max(0, goal.current - amount)
+  }
+
+  function setSavingsTarget(goalId: string, target: number) {
+    const goal = savingsGoals.value.find((g) => g.id === goalId)
+    if (goal) goal.target = target
+  }
+
+  const categories = computed<Category[]>(() => [...CATEGORIES, ...customCategories.value])
+
+  function categoryOf(categoryId: string): Category {
+    return categories.value.find((c) => c.id === categoryId) ?? getCategory(categoryId)
+  }
+
+  function addCustomCategory(input: Omit<Category, 'id'>) {
+    customCategories.value.push({ ...input, id: createId() })
+  }
+
+  /** No-op if `id` belongs to a built-in category — those aren't in `customCategories`. */
+  function removeCustomCategory(id: string) {
+    customCategories.value = customCategories.value.filter((c) => c.id !== id)
   }
 
   return {
@@ -127,20 +157,28 @@ export const useFinanceStore = defineStore('finance', () => {
     sortedTransactions,
     recurringExpenses,
     sortedRecurringExpenses,
-    savingsGoal,
+    savingsGoals,
+    totalSavings,
     totalEntrate,
     totalUscite,
     balance,
     monthlyRecurringTotal,
     monthlyAmountOf,
-    savingsProgress,
+    savingsProgressOf,
     addTransaction,
     removeTransaction,
     addRecurringExpense,
     removeRecurringExpense,
     mortgageRemainingBalance,
+    addSavingsGoal,
+    removeSavingsGoal,
     depositToSavings,
     withdrawFromSavings,
     setSavingsTarget,
+    categories,
+    customCategories,
+    categoryOf,
+    addCustomCategory,
+    removeCustomCategory,
   }
 })

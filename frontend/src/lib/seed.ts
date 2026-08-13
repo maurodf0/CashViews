@@ -63,6 +63,9 @@ export function seedRecurringExpenses(): RecurringExpense[] {
   ]
 }
 
-export function seedSavingsGoal(): SavingsGoal {
-  return { name: 'Fondo Monetario', target: 10000, current: 3450 }
+export function seedSavingsGoals(): SavingsGoal[] {
+  return [
+    { id: createId(), name: 'Fondo Monetario', target: 10000, current: 3450 },
+    { id: createId(), name: 'Vacanze', target: 2000, current: 450 },
+  ]
 }

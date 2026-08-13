@@ -7,7 +7,7 @@ import { VyInput } from '@vyui/kit/input'
 import { useFinanceStore } from '../stores/finance'
 
 const open = defineModel<boolean>('open', { default: false })
-const props = defineProps<{ mode: 'deposita' | 'preleva' }>()
+const props = defineProps<{ mode: 'deposita' | 'preleva'; goalId: string }>()
 
 const store = useFinanceStore()
 const amount = ref('')
@@ -25,9 +25,9 @@ function confirm() {
   if (!canSave.value) return
   const value = Number.parseFloat(amount.value.replace(',', '.'))
   if (props.mode === 'deposita') {
-    store.depositToSavings(value)
+    store.depositToSavings(props.goalId, value)
   } else {
-    store.withdrawFromSavings(value)
+    store.withdrawFromSavings(props.goalId, value)
   }
   open.value = false
 }

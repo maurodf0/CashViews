@@ -5,14 +5,17 @@ import { VyIcon } from '@vyui/kit/icon'
 import AddRecurringExpenseDrawer from '../components/AddRecurringExpenseDrawer.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
 import RecurringExpenseRow from '../components/RecurringExpenseRow.vue'
+import GlassCard from '../components/GlassCard.vue'
 import { useFinanceStore } from '../stores/finance'
+import { useThemeStore } from '../stores/theme'
 import { formatCurrency } from '../lib/format'
-import { ACCENT_GRADIENT, ICON_COLOR } from '../lib/colors'
+import { ICON_COLOR } from '../lib/colors'
 import { RECURRING_TYPE_META, RECURRING_TYPES } from '../lib/recurring'
 import { useCountUp } from '../composables/useCountUp'
 import type { RecurringExpenseType } from '../types'
 
 const store = useFinanceStore()
+const theme = useThemeStore()
 const addOpen = ref(false)
 const confirmDeleteId = ref<string | null>(null)
 const filter = ref<'tutti' | RecurringExpenseType>('tutti')
@@ -40,21 +43,18 @@ const filters: { id: 'tutti' | RecurringExpenseType; label: string }[] = [
       <text class="text-xl font-semibold text-white">Spese Ricorrenti</text>
       <view
         class="flex size-9 items-center justify-center rounded-full transition-transform active:scale-90"
-        :style="{ background: ACCENT_GRADIENT }"
+        :style="{ background: theme.accentGradientCss }"
         @tap="addOpen = true"
       >
         <VyIcon name="i-lucide-plus" :color="ICON_COLOR.white" class="size-5" />
       </view>
     </view>
 
-    <view
-      class="flex flex-col gap-1 rounded-2xl border border-zinc-800 bg-zinc-900 p-4 animate-fade-in-up"
-      style="animation-delay: 40ms"
-    >
+    <GlassCard class="flex flex-col gap-1 p-4 animate-fade-in-up" style="animation-delay: 40ms">
       <text class="text-xs text-zinc-500">Totale mensile</text>
       <text class="text-2xl font-semibold text-white">{{ formatCurrency(animatedMonthlyTotal) }}</text>
       <text class="text-xs text-zinc-500">{{ store.recurringExpenses.length }} spese attive</text>
-    </view>
+    </GlassCard>
 
     <view class="flex flex-row gap-2 animate-fade-in-up" style="animation-delay: 60ms">
       <view

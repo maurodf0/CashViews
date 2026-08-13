@@ -5,6 +5,7 @@ import { VyIcon } from '@vyui/kit/icon'
 import { useFinanceStore } from '../stores/finance'
 import { formatCurrency } from '../lib/format'
 import { dailyBuckets, categoryBreakdown } from '../lib/stats'
+import GlassCard from '../components/GlassCard.vue'
 
 const CHART_HEIGHT = 120
 
@@ -27,10 +28,7 @@ const totalSpent = computed(() => categories.value.reduce((s, c) => s + c.amount
   <view class="flex flex-col gap-6 px-4 pb-8 pt-4">
     <text class="text-xl font-semibold text-white animate-fade-in-up">Statistiche</text>
 
-    <view
-      class="flex flex-col gap-4 rounded-3xl border border-zinc-800 bg-zinc-900 p-5 animate-fade-in-up"
-      style="animation-delay: 40ms"
-    >
+    <GlassCard class="flex flex-col gap-4 p-5 animate-fade-in-up" style="animation-delay: 40ms">
       <view class="flex flex-row items-center justify-between">
         <text class="text-sm font-medium text-white">Entrate e uscite</text>
         <view class="flex flex-row items-center gap-3">
@@ -64,7 +62,7 @@ const totalSpent = computed(() => categories.value.reduce((s, c) => s + c.amount
           {{ day.label }}
         </text>
       </view>
-    </view>
+    </GlassCard>
 
     <view
       class="flex flex-col gap-4 rounded-2xl border border-zinc-800 bg-zinc-900 p-4 animate-fade-in-up"

@@ -1,31 +1,28 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { VyIcon } from '@vyui/kit/icon'
-import { VyProgress } from '@vyui/kit/progress'
 
 import TransactionRow from '../components/TransactionRow.vue'
-import AddTransactionDrawer from '../components/AddTransactionDrawer.vue'
 import { useFinanceStore } from '../stores/finance'
+import { useThemeStore } from '../stores/theme'
 import { formatCurrency } from '../lib/format'
 import { ICON_COLOR } from '../lib/colors'
 import { useCountUp } from '../composables/useCountUp'
-import GlowOrb from '../components/GlowOrb.vue'
-import type { TransactionKind } from '../types'
+import GlassCard from '../components/GlassCard.vue'
 
-const emit = defineEmits<{ navigate: ['transazioni' | 'ricorrenti' | 'risparmi'] }>()
+const emit = defineEmits<{
+  navigate: ['transazioni' | 'ricorrenti' | 'risparmi']
+  openSettings: []
+}>()
 
 const store = useFinanceStore()
-
-const addOpen = ref(false)
-const addKind = ref<TransactionKind>('uscita')
-
-function openAdd(kind: TransactionKind) {
-  addKind.value = kind
-  addOpen.value = true
-}
+const theme = useThemeStore()
 
 const recent = computed(() => store.sortedTransactions.slice(0, 5))
-const savingsPercent = computed(() => Math.round(store.savingsProgress * 100))
+const savingsPercent = computed(() => {
+  const target = store.savingsGoals.reduce((s, g) => s + g.target, 0)
+  return target > 0 ? Math.round((store.totalSavings / target) * 100) : 0
+})
 
 const animatedBalance = useCountUp(computed(() => store.balance))
 const animatedEntrate = useCountUp(computed(() => store.totalEntrate))
@@ -41,17 +38,15 @@ const animatedRecurringTotal = useCountUp(computed(() => store.monthlyRecurringT
         <text class="text-sm text-zinc-400">Bentornato</text>
         <text class="text-xl font-semibold text-white">Il tuo conto</text>
       </view>
-      <view class="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/10">
-        <VyIcon name="i-lucide-user" :color="ICON_COLOR.white" class="size-5" />
+      <view
+        class="flex size-10 items-center justify-center rounded-full border border-white/10 bg-white/10 transition-transform active:scale-90"
+        @tap="emit('openSettings')"
+      >
+        <VyIcon name="i-lucide-settings" :color="ICON_COLOR.white" class="size-5" />
       </view>
     </view>
 
-    <view
-      class="relative flex flex-col gap-4 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.06] p-5 animate-fade-in-up"
-      style="animation-delay: 40ms"
-    >
-      <GlowOrb class="-right-10 -top-16 size-48 opacity-50" />
-      <GlowOrb class="-bottom-16 -left-10 size-40 opacity-30" />
+    <GlassCard class="flex flex-col gap-4 p-5 animate-fade-in-up" style="animation-delay: 40ms">
       <text class="text-xs font-medium uppercase tracking-wide text-zinc-400">Saldo disponibile</text>
       <text class="text-[34px] font-semibold text-white">{{ formatCurrency(animatedBalance) }}</text>
       <view class="flex flex-row gap-6">
@@ -64,24 +59,7 @@ const animatedRecurringTotal = useCountUp(computed(() => store.monthlyRecurringT
           <text class="text-sm font-medium text-rose-400">{{ formatCurrency(animatedUscite) }}</text>
         </view>
       </view>
-    </view>
-
-    <view class="flex flex-row gap-3 animate-fade-in-up" style="animation-delay: 80ms">
-      <view
-        class="flex flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] py-3.5 transition-transform active:scale-[0.97] active:bg-white/10"
-        @tap="openAdd('entrata')"
-      >
-        <VyIcon name="i-lucide-plus" :color="ICON_COLOR.emerald400" class="size-4" />
-        <text class="text-sm font-medium text-white">Entrata</text>
-      </view>
-      <view
-        class="flex flex-1 flex-row items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] py-3.5 transition-transform active:scale-[0.97] active:bg-white/10"
-        @tap="openAdd('uscita')"
-      >
-        <VyIcon name="i-lucide-minus" :color="ICON_COLOR.rose400" class="size-4" />
-        <text class="text-sm font-medium text-white">Uscita</text>
-      </view>
-    </view>
+    </GlassCard>
 
     <view
       class="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900 p-4 transition-transform active:scale-[0.98] active:bg-white/5 animate-fade-in-up"
@@ -90,22 +68,24 @@ const animatedRecurringTotal = useCountUp(computed(() => store.monthlyRecurringT
     >
       <view class="flex flex-row items-center justify-between">
         <view class="flex min-w-0 flex-row items-center gap-2">
-          <VyIcon name="i-lucide-piggy-bank" :color="ICON_COLOR.teal" class="size-5 shrink-0" />
-          <text class="truncate text-sm font-medium text-white">{{ store.savingsGoal.name }}</text>
+          <VyIcon name="i-lucide-piggy-bank" :color="theme.accentColor" class="size-5 shrink-0" />
+          <text class="truncate text-sm font-medium text-white">
+            {{ store.savingsGoals.length }} {{ store.savingsGoals.length === 1 ? 'fondo' : 'fondi' }}
+          </text>
         </view>
         <VyIcon name="i-lucide-chevron-right" :color="ICON_COLOR.zinc500" class="size-4 shrink-0" />
       </view>
-      <VyProgress
-        :model-value="animatedSavingsPercent"
-        :max="100"
-        size="md"
-        :ui="{ indicator: 'bg-[linear-gradient(90deg,#0284c7,#0d9488)]' }"
-      />
+      <view class="h-2 overflow-hidden rounded-full bg-white/10">
+        <view
+          class="h-full rounded-full transition-[width] duration-500"
+          :style="{ width: `${animatedSavingsPercent}%`, background: theme.accentGradientCss }"
+        />
+      </view>
       <view class="flex flex-row items-center justify-between">
-        <text class="text-xs text-zinc-400">
-          {{ formatCurrency(store.savingsGoal.current) }} di {{ formatCurrency(store.savingsGoal.target) }}
+        <text class="text-xs text-zinc-400">{{ formatCurrency(store.totalSavings) }} risparmiati</text>
+        <text class="text-xs font-medium" :style="{ color: theme.accentColor }">
+          {{ Math.round(animatedSavingsPercent) }}%
         </text>
-        <text class="text-xs font-medium text-teal-400">{{ Math.round(animatedSavingsPercent) }}%</text>
       </view>
     </view>
 
@@ -130,7 +110,9 @@ const animatedRecurringTotal = useCountUp(computed(() => store.monthlyRecurringT
     <view class="flex flex-col gap-1 animate-fade-in-up" style="animation-delay: 200ms">
       <view class="flex flex-row items-center justify-between px-1">
         <text class="text-sm font-medium text-white">Ultimi movimenti</text>
-        <text class="text-xs text-teal-400" @tap="emit('navigate', 'transazioni')">Vedi tutti</text>
+        <text class="text-xs" :style="{ color: theme.accentColor }" @tap="emit('navigate', 'transazioni')">
+          Vedi tutti
+        </text>
       </view>
       <view class="rounded-2xl border border-zinc-800 bg-zinc-900">
         <TransactionRow v-for="t in recent" :key="t.id" :transaction="t" />
@@ -139,7 +121,5 @@ const animatedRecurringTotal = useCountUp(computed(() => store.monthlyRecurringT
         </view>
       </view>
     </view>
-
-    <AddTransactionDrawer v-model:open="addOpen" :initial-kind="addKind" />
   </view>
 </template>

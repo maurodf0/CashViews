@@ -56,6 +56,7 @@ export interface RecurringExpense {
 }
 
 export interface SavingsGoal {
+  id: string
   target: number
   current: number
   name: string

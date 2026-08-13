@@ -6,7 +6,6 @@ import { VyInput } from '@vyui/kit/input'
 import { VyIcon } from '@vyui/kit/icon'
 
 import type { TransactionKind } from '../types'
-import { CATEGORIES } from '../lib/categories'
 import { useFinanceStore } from '../stores/finance'
 
 const open = defineModel<boolean>('open', { default: false })
@@ -17,25 +16,25 @@ const store = useFinanceStore()
 const kind = ref<TransactionKind>(props.initialKind ?? 'uscita')
 const amount = ref('')
 const note = ref('')
-const categoryId = ref(CATEGORIES.find((c) => c.kind === kind.value)!.id)
+const categoryId = ref(store.categories.find((c) => c.kind === kind.value)?.id ?? '')
 
 watch(open, (isOpen) => {
   if (isOpen) {
     kind.value = props.initialKind ?? 'uscita'
     amount.value = ''
     note.value = ''
-    categoryId.value = CATEGORIES.find((c) => c.kind === kind.value)!.id
+    categoryId.value = store.categories.find((c) => c.kind === kind.value)?.id ?? ''
   }
 })
 
 watch(kind, (newKind) => {
-  const stillValid = CATEGORIES.some((c) => c.id === categoryId.value && c.kind === newKind)
+  const stillValid = store.categories.some((c) => c.id === categoryId.value && c.kind === newKind)
   if (!stillValid) {
-    categoryId.value = CATEGORIES.find((c) => c.kind === newKind)!.id
+    categoryId.value = store.categories.find((c) => c.kind === newKind)?.id ?? ''
   }
 })
 
-const categoriesForKind = computed(() => CATEGORIES.filter((c) => c.kind === kind.value))
+const categoriesForKind = computed(() => store.categories.filter((c) => c.kind === kind.value))
 
 const canSave = computed(() => {
   const value = Number.parseFloat(amount.value.replace(',', '.'))

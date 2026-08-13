@@ -6,11 +6,13 @@ import TransactionRow from '../components/TransactionRow.vue'
 import AddTransactionDrawer from '../components/AddTransactionDrawer.vue'
 import ConfirmModal from '../components/ConfirmModal.vue'
 import { useFinanceStore } from '../stores/finance'
+import { useThemeStore } from '../stores/theme'
 import { formatDateFull } from '../lib/format'
-import { ACCENT_GRADIENT, ICON_COLOR } from '../lib/colors'
+import { ICON_COLOR } from '../lib/colors'
 import type { TransactionKind } from '../types'
 
 const store = useFinanceStore()
+const theme = useThemeStore()
 
 const addOpen = ref(false)
 const filter = ref<'tutti' | TransactionKind>('tutti')
@@ -48,7 +50,7 @@ const filters: { id: 'tutti' | TransactionKind; label: string }[] = [
       <text class="text-xl font-semibold text-white">Movimenti</text>
       <view
         class="flex size-9 items-center justify-center rounded-full transition-transform active:scale-90"
-        :style="{ background: ACCENT_GRADIENT }"
+        :style="{ background: theme.accentGradientCss }"
         @tap="addOpen = true"
       >
         <VyIcon name="i-lucide-plus" :color="ICON_COLOR.white" class="size-5" />

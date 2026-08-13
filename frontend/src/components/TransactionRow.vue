@@ -2,13 +2,14 @@
 import { VyIcon } from '@vyui/kit/icon'
 
 import type { Transaction } from '../types'
-import { getCategory } from '../lib/categories'
 import { formatDate, formatSignedCurrency } from '../lib/format'
+import { useFinanceStore } from '../stores/finance'
 
 const props = defineProps<{ transaction: Transaction }>()
 const emit = defineEmits<{ press: [] }>()
 
-const category = getCategory(props.transaction.categoryId)
+const store = useFinanceStore()
+const category = store.categoryOf(props.transaction.categoryId)
 </script>
 
 <template>
