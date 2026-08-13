@@ -43,12 +43,20 @@ export const auth = betterAuth({
       sendVerificationOnSignUp: true,
       overrideDefaultEmailVerification: true,
       async sendVerificationOTP({ email, otp, type }) {
-        await resend.emails.send({
+        // No real Resend key configured yet (RESEND_API_KEY is still the
+        // .env.example placeholder) — print the OTP so local dev isn't
+        // blocked on setting up email. Remove once a real key is in place.
+        if (!process.env.RESEND_API_KEY || process.env.RESEND_API_KEY === 're_your_api_key') {
+          console.log(`[dev] OTP for ${email} (${type}): ${otp}`)
+          return
+        }
+        const { error } = await resend.emails.send({
           from: process.env.RESEND_FROM_EMAIL ?? 'CashViews <onboarding@resend.dev>',
           to: email,
           subject: OTP_SUBJECT[type],
           html: `<p>Il tuo codice è: <strong>${otp}</strong> (valido 5 minuti)</p>`,
         })
+        if (error) console.error(`Resend failed to send OTP to ${email}:`, error)
       },
     }),
     bearer(),
